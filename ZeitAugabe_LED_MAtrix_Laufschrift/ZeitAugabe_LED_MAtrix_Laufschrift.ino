@@ -62,8 +62,8 @@ void loop() {
   }
 
   // Stunden, Minuten und Sekunden formatieren
-  char timeString[9];  
-  strftime(timeString, sizeof(timeString), "%H:%M:%S", &timeinfo);
+  char timeString[14];  
+  strftime(timeString, sizeof(timeString), "     %H:%M:%S", &timeinfo);
   Serial.println(timeString);
 
   // Zeit auf der LED-Matrix anzeigen
@@ -78,5 +78,5 @@ void loop() {
     FastLED.show();
   }
   
-  delay(1000);
+  delay(100);
 }
