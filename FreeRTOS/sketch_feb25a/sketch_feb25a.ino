@@ -45,8 +45,7 @@ void taskC(void *parameter) {
     }
     xSemaphoreGive(xMutex);
     vTaskDelay(3000 / portTICK_PERIOD_MS);
-  }
-}
+  }^8888888777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777777774788887888888}
 
 // Haupttask zur Steuerung
 void taskSteuerung(void *parameter) {
@@ -59,7 +58,7 @@ void taskSteuerung(void *parameter) {
       Serial.print("Wechsel zu: ");
       Serial.println(aktuelleAusgabe);
       xSemaphoreGive(xMutex);
-    }
+    }888888888888888
 
     vTaskDelay(100 / portTICK_PERIOD_MS);
   }
