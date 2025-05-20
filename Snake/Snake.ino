@@ -1,36 +1,35 @@
 #include <FastLED.h>
 #include <LEDMatrix.h>
 #include <LEDText.h>
-#include <FontMatrise.h>  // Stelle sicher, dass diese Datei im Projekt vorhanden ist
+#include <FontMatrise.h>
 
 // LED-Konfiguration
 #define LED_PIN        32
 #define COLOR_ORDER    GRB
 #define CHIPSET        WS2812B
-
 #define MATRIX_WIDTH   32
 #define MATRIX_HEIGHT  8
 #define MATRIX_TYPE    VERTICAL_ZIGZAG_MATRIX
 
-// Joystick-Pins
+// Joystick
 #define JOY_X_PIN      34
 #define JOY_Y_PIN      35
 
-// Matrix und LED-Zugriff
+// Matrix-Objekt und LED-Array
 cLEDMatrix<MATRIX_WIDTH, MATRIX_HEIGHT, MATRIX_TYPE> matrix;
 CRGB* leds = matrix[0];
 
-// Bewegungsrichtung
+// Richtung
 enum Richtung { OBEN, UNTEN, LINKS, RECHTS };
 Richtung aktuelleRichtung = RECHTS;
 
-// Snake-Daten
+// Snake-Variablen
 const int maxLaenge = MATRIX_WIDTH * MATRIX_HEIGHT;
 int snakeX[maxLaenge];
 int snakeY[maxLaenge];
 int snakeLaenge = 3;
 
-// Futterposition
+// Futter
 int futterX = 5;
 int futterY = 3;
 
@@ -39,7 +38,7 @@ const int schwelleOben  = 1000;
 const int schwelleUnten = 3000;
 
 /**
- * Initialisiert LEDs, Snake-Startposition und erstes Futter
+ * Initialisiert Snake, Matrix und Futter
  */
 void setup()
 {
@@ -47,7 +46,7 @@ void setup()
   FastLED.setBrightness(64);
   randomSeed(analogRead(JOY_X_PIN));
 
-  // Startposition der Snake
+  // Snake Startposition
   snakeX[0] = 3; snakeY[0] = 4;
   snakeX[1] = 2; snakeY[1] = 4;
   snakeX[2] = 1; snakeY[2] = 4;
@@ -57,7 +56,7 @@ void setup()
 }
 
 /**
- * Liest den Joystick aus und ändert die Richtung
+ * Liest Joystick und ändert Richtung
  */
 void leseJoystick()
 {
@@ -65,7 +64,7 @@ void leseJoystick()
   int yWert = analogRead(JOY_Y_PIN);
 
   if (xWert < schwelleOben && aktuelleRichtung != RECHTS) {
-    aktuelleRrichtung = LINKS;
+    aktuelleRichtung = LINKS;
   } else if (xWert > schwelleUnten && aktuelleRichtung != LINKS) {
     aktuelleRichtung = RECHTS;
   } else if (yWert < schwelleOben && aktuelleRichtung != UNTEN) {
@@ -76,8 +75,7 @@ void leseJoystick()
 }
 
 /**
- * Bewegt die Snake einen Schritt weiter
- * Gibt false zurück bei Kollision
+ * Bewegt Snake und prüft Kollisionen
  */
 bool bewegeSchlange()
 {
@@ -93,26 +91,26 @@ bool bewegeSchlange()
     case UNTEN:  snakeY[0]++; break;
   }
 
-  // Kollision mit Rand
+  // Wandkollision
   if (snakeX[0] < 0 || snakeX[0] >= MATRIX_WIDTH ||
       snakeY[0] < 0 || snakeY[0] >= MATRIX_HEIGHT) {
     return false;
   }
 
-  // Kollision mit sich selbst
+  // Eigenkollision
   for (int i = 1; i < snakeLaenge; i++) {
     if (snakeX[0] == snakeX[i] && snakeY[0] == snakeY[i]) {
       return false;
     }
   }
 
-  // Futter gegessen
+  // Futter fressen
   if (snakeX[0] == futterX && snakeY[0] == futterY) {
     if (snakeLaenge < maxLaenge) {
       snakeLaenge++;
     }
 
-    // Neues Futter generieren (nicht auf Snake)
+    // Neues Futter suchen
     bool gültig = false;
     while (!gültig) {
       futterX = random(0, MATRIX_WIDTH);
@@ -131,7 +129,26 @@ bool bewegeSchlange()
 }
 
 /**
- * Zeichnet Snake und Futter
+ * Universelle Methode: Zeichnet ein Koordinatensystem
+ * X-Achse unten (y = MATRIX_HEIGHT - 1), Y-Achse links (x = 0)
+ * Ursprung (0, MATRIX_HEIGHT - 1) wird weiß hervorgehoben
+ */
+void zeichneKoordinatensystem(CRGB* ledsArray,
+                               cLEDMatrix<MATRIX_WIDTH, MATRIX_HEIGHT, MATRIX_TYPE>& matrixObj)
+{
+  for (int x = 0; x < MATRIX_WIDTH; x++) {
+    ledsArray[matrixObj.mXY(x, MATRIX_HEIGHT - 1)] = CRGB::Blue;
+  }
+
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    ledsArray[matrixObj.mXY(0, y)] = CRGB::Blue;
+  }
+
+  ledsArray[matrixObj.mXY(0, MATRIX_HEIGHT - 1)] = CRGB::White;
+}
+
+/**
+ * Zeichnet Snake, Futter und Koordinatensystem
  */
 void zeichneSpiel()
 {
@@ -143,11 +160,13 @@ void zeichneSpiel()
 
   leds[matrix.mXY(futterX, futterY)] = CRGB::Red;
 
+  zeichneKoordinatensystem(leds, matrix);
+
   FastLED.show();
 }
 
 /**
- * Spiel zurücksetzen nach Game Over
+ * Zeigt Game Over und startet neu
  */
 void spielZuruecksetzen()
 {
@@ -162,19 +181,18 @@ void spielZuruecksetzen()
     delay(200);
   }
 
-  // Snake neu starten
+  // Snake resetten
   snakeLaenge = 3;
   snakeX[0] = 3; snakeY[0] = 4;
   snakeX[1] = 2; snakeY[1] = 4;
   snakeX[2] = 1; snakeY[2] = 4;
   aktuelleRichtung = RECHTS;
-
   futterX = random(0, MATRIX_WIDTH);
   futterY = random(0, MATRIX_HEIGHT);
 }
 
 /**
- * Hauptspiel-Loop
+ * Hauptloop
  */
 void loop()
 {
